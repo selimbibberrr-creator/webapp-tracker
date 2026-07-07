@@ -1,0 +1,7 @@
+{
+  "app": "ForgeTracker",
+  "version": "0.9-pwa.1",
+  "schema": 5,
+  "build": "github-pages",
+  "released": "2026-07-07"
+}
