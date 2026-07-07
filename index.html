@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#090d12" />
+    <meta name="description" content="ForgeTracker — installeerbare mobiele sample tracker en muziekworkstation." />
+    <meta name="application-name" content="ForgeTracker" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="ForgeTracker" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icons/icon.svg" />
+    <title>ForgeTracker laden…</title>
+    <style>
+      :root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+      * { box-sizing: border-box; }
+      html, body { margin:0; width:100%; min-height:100%; background:#070a0e; color:#e8f0f5; }
+      body { display:grid; place-items:center; padding:24px; min-height:100dvh; }
+      main { width:min(520px,100%); text-align:center; }
+      .logo { width:88px; height:88px; display:grid; place-items:center; margin:0 auto 18px; border:2px solid #53ffb5; border-radius:22px; color:#53ffb5; font-size:28px; font-weight:950; box-shadow:inset 0 0 24px rgba(83,255,181,.12),0 0 36px rgba(83,255,181,.08); }
+      h1 { margin:0 0 8px; letter-spacing:.05em; }
+      p { color:#8798a8; line-height:1.55; }
+      .bar { height:8px; overflow:hidden; border:1px solid #263340; border-radius:999px; background:#0e141b; margin:22px 0 12px; }
+      .fill { width:12%; height:100%; background:linear-gradient(90deg,#53ffb5,#4cc9ff); transition:width .16s ease; }
+      .status { min-height:22px; color:#c9d5dd; font-size:13px; }
+      button { min-height:46px; padding:10px 16px; border-radius:10px; border:1px solid #53ffb5; color:#53ffb5; background:#121b24; font:inherit; font-weight:900; }
+      button[hidden] { display:none; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="logo">FT</div>
+      <h1>FORGETRACKER</h1>
+      <p>De offline tracker-engine wordt geladen.</p>
+      <div class="bar"><div id="fill" class="fill"></div></div>
+      <div id="status" class="status">Payload controleren…</div>
+      <button id="retry" hidden>OPNIEUW PROBEREN</button>
+    </main>
+    <script>
+      (() => {
+        const status = document.getElementById('status');
+        const fill = document.getElementById('fill');
+        const retry = document.getElementById('retry');
+        const chunkCount = 13;
+
+        async function loadApp() {
+          retry.hidden = true;
+          try {
+            if (typeof DecompressionStream === 'undefined') {
+              throw new Error('Deze browser ondersteunt de vereiste gzip-decompressie niet. Gebruik een actuele versie van Chrome of Edge.');
+            }
+            const chunks = [];
+            for (let i = 0; i < chunkCount; i += 1) {
+              status.textContent = `App laden · ${i + 1}/${chunkCount}`;
+              fill.style.width = `${Math.round(((i + 1) / chunkCount) * 78)}%`;
+              const response = await fetch(`./payload/chunk-${String(i).padStart(2, '0')}.txt`, { cache: 'no-cache' });
+              if (!response.ok) throw new Error(`Payloaddeel ${i + 1} ontbreekt (${response.status})`);
+              chunks.push((await response.text()).trim());
+            }
+            status.textContent = 'App uitpakken…';
+            fill.style.width = '88%';
+            const binary = atob(chunks.join(''));
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+            const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+            const html = await new Response(stream).text();
+            if (!html.includes('FORGETRACKER') || !html.includes('void init()')) {
+              throw new Error('De uitgepakte app is ongeldig.');
+            }
+            status.textContent = 'Starten…';
+            fill.style.width = '100%';
+            document.open();
+            document.write(html);
+            document.close();
+          } catch (error) {
+            console.error(error);
+            status.textContent = error?.message || 'De app kon niet worden geladen.';
+            fill.style.width = '0%';
+            retry.hidden = false;
+          }
+        }
+
+        retry.addEventListener('click', loadApp);
+        loadApp();
+      })();
+    </script>
+  </body>
+</html>
