@@ -1,0 +1,9 @@
+{
+  "format": "gzip+base64-chunks",
+  "chunkCount": 13,
+  "chunkSize": 12000,
+  "decodedBytes": 518653,
+  "gzipBytes": 108910,
+  "sha256": "c57b9a7b1ee9e94bbf5d772ce24dcc75047a62f12be07be288f9ae8d672dca94",
+  "version": "0.9-pwa.1"
+}
